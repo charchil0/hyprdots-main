@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
+
+
 scrDir=$(dirname "$(realpath "$0")")
 source "${scrDir}/global_fn.sh"
 if [ $? -ne 0 ]; then
     echo "Error: unable to source global_fn.sh..."
     exit 1
 fi
-    "${scrDir}/install_pre.sh"
+   
     shift $((OPTIND - 1))
     cust_pkg=$1
     cp "${scrDir}/custom_hypr.lst" "${scrDir}/install_pkg.lst"
@@ -21,6 +23,23 @@ if [[ "$(grep "/${USER}:" /etc/passwd | awk -F '/' '{print $NF}')" != "${myShell
     chsh -s "$(which "${myShell}")"
 else
     echo -e "\033[0;33m[SKIP]\033[0m ${myShell} is already set as shell..."
+fi
+
+# pacman
+if [ -f /etc/pacman.conf ] && [ ! -f /etc/pacman.conf.t2.bkp ]; then
+    echo -e "\033[0;32m[PACMAN]\033[0m adding extra spice to pacman..."
+
+    sudo cp /etc/pacman.conf /etc/pacman.conf.t2.bkp
+    sudo sed -i "/^#Color/c\Color\nILoveCandy
+    /^#VerbosePkgLists/c\VerbosePkgLists
+    /^#ParallelDownloads/c\ParallelDownloads = 5" /etc/pacman.conf
+    sudo sed -i '/^#\[multilib\]/,+1 s/^#//' /etc/pacman.conf
+
+    sudo pacman -Syyu
+    sudo pacman -Fy
+
+else
+    echo -e "\033[0;33m[SKIP]\033[0m pacman is already configured..."
 fi
 
     "${scrDir}/restore_fnt.sh"
@@ -41,3 +60,13 @@ fi
         "$HOME/.local/share/bin/themeswitch.sh" &> /dev/null
     fi
     "${scrDir}/install_pst.sh"
+# dolphin
+if pkg_installed dolphin && pkg_installed xdg-utils; then
+
+    echo -e "\033[0;32m[FILEMANAGER]\033[0m detected // dolphin"
+    xdg-mime default org.kde.dolphin.desktop inode/directory
+    echo -e "\033[0;32m[FILEMANAGER]\033[0m setting" `xdg-mime query default "inode/directory"` "as default file explorer..."
+
+else
+    echo -e "\033[0;33m[WARNING]\033[0m dolphin is not installed..."
+fi
